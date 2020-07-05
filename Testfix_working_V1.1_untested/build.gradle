@@ -1,0 +1,39 @@
+apply plugin: "java"
+apply plugin: "maven"
+
+version '0.1'
+
+sourceCompatibility = 1.8
+
+repositories{
+    mavenCentral()
+    maven{ url 'https://jitpack.io' }
+}
+
+ext{
+    mindustryVersion = 'getMapScreenshot'
+    arcVersion = 'v104'
+}
+
+dependencies{
+
+    compileOnly "com.github.Anuken.Arc:arc-core:$arcVersion"
+    compileOnly "com.github.fuzzbuck.Mindustry:core:$mindustryVersion"
+    compileOnly "com.github.fuzzbuck.Mindustry:server:$mindustryVersion"
+
+    compile "org.glassfish.jersey.core:jersey-client:2.25.1"
+    compile "redis.clients:jedis:3.2.0"
+    compile group: 'org.json', name: 'json', version: '20190722'
+
+    implementation 'org.javacord:javacord:3.0.5'
+    implementation 'com.google.code.gson:gson:2.8.6'
+}
+
+jar{
+    version = null
+    from{
+        configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}
+    }
+}
+
+compileJava.options.encoding = 'UTF-8'

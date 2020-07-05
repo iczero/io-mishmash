@@ -1,0 +1,17 @@
+{
+  "token" : "DISCORD_TOKEN",
+  "prefix": "!",
+  "server_name": "Server name goes here",
+
+  "mapSubmissions_id": "660823042804678678",
+  "warnings_chat_channel_id": "676851314310774814",
+  "exit_roleid": "623931274020651101",
+  "administrator_roleid": "624275082482679808",
+  "moderator_roleid": "624959361789329410",
+  "role_id": "624959361789329410",
+  "live_chat_channel_id" : "",
+
+  "donator_roleid": "636968410441318430",
+  "activeplayer_roleid": "627985513600516109",
+  "mvp_roleid": "674778262857187347"
+}
