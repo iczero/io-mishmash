@@ -16,11 +16,13 @@ import arc.util.Timer;
 import com.google.gson.Gson;
 import arc.util.Timer.Task;
 import mindustry.content.*;
+import mindustry.core.NetClient;
 import mindustry.entities.Effects;
 import mindustry.entities.traits.Entity;
 import mindustry.entities.type.BaseUnit;
 import mindustry.graphics.Pal;
 import mindustry.net.Administration;
+import mindustry.net.Administration.Config;
 import mindustry.type.UnitType;
 import mindustry.world.Build;
 import mindustry.type.UnitType;
@@ -230,27 +232,43 @@ public class ioMain extends Plugin {
             }
         });
 
+        // TODO: remove this when MapRules is back in use
         Events.on(EventType.ServerLoadEvent.class, event -> {
             // action filter
             Vars.netServer.admins.addActionFilter(action -> {
                 Player player = action.player;
                 if (player == null) return true;
 
+                // disable checks for admins
                 if (player.isAdmin) return true;
 
-                return action.type != Administration.ActionType.rotate;
-            });
-        });
+                PersistentPlayerData tdata = (playerDataGroup.getOrDefault(action.player.uuid, null));
+                if (tdata == null) { // should never happen
+                    player.sendMessage("[scarlet]You may not build right now due to a server error, please tell an administrator");
+                    return false;
+                }
 
-        Events.on(EventType.ServerLoadEvent.class, event -> {
-            // action filter
-            Vars.netServer.admins.addActionFilter(action -> {
-                Player player = action.player;
-                if (player == null) return true;
+                switch (action.type) {
+                    case rotate: {
+                        boolean hit = tdata.rotateRatelimit.get();
+                        if (hit) {
+                            player.sendMessage("[scarlet]Rotate ratelimit exceeded, please rotate slower");
+                            return false;
+                        }
+                        break;
+                    }
 
-                if (player.isAdmin) return true;
+                    case configure: {
+                        boolean hit = tdata.configureRatelimit.get();
+                        if (hit) {
+                            player.sendMessage("[scarlet]Configure ratelimit exceeded, please configure slower");
+                            return false;
+                        }
+                        break;
+                    }
+                }
 
-                return action.type != Administration.ActionType.rotate;
+                return true;
             });
         });
     }
@@ -264,25 +282,62 @@ public class ioMain extends Plugin {
     //cooldown between votes
     int voteCooldown = 120 * 1;
 
+    public static boolean checkChatRatelimit(String message, Player player) {
+        // copied almost exactly from mindustry core, will probably need updating
+        // will also update the user's global chat ratelimits
+        long resetTime = Config.messageRateLimit.num() * 1000;
+        if(Config.antiSpam.bool() && !player.isLocal && !player.isAdmin){
+            //prevent people from spamming messages quickly
+            if(resetTime > 0 && Time.timeSinceMillis(player.getInfo().lastMessageTime) < resetTime){
+                //supress message
+                player.sendMessage("[scarlet]You may only send messages every " + Config.messageRateLimit.num() + " seconds.");
+                player.getInfo().messageInfractions ++;
+                //kick player for spamming and prevent connection if they've done this several times
+                if(player.getInfo().messageInfractions >= Config.messageSpamKick.num() && Config.messageSpamKick.num() != 0){
+                    player.con.kick("You have been kicked for spamming.", 1000 * 60 * 2);
+                }
+                return false;
+            }else{
+                player.getInfo().messageInfractions = 0;
+            }
+
+            //prevent players from sending the same message twice in the span of 50 seconds
+            if(message.equals(player.getInfo().lastSentMessage) && Time.timeSinceMillis(player.getInfo().lastMessageTime) < 1000 * 50){
+                player.sendMessage("[scarlet]You may not send the same message twice.");
+                return false;
+            }
+
+            player.getInfo().lastSentMessage = message;
+            player.getInfo().lastMessageTime = Time.millis();
+        }
+        return true;
+    }
+
     //register commands that player can invoke in-game
     @Override
     public void registerClientCommands(CommandHandler handler){
         if (api != null) {
+            handler.removeCommand("t");
+            handler.<Player>register("t", "<message...>", "Send a message only to your teammates.", (args, player) -> {
+                String message = args[0];
+                if (!checkChatRatelimit(message, player)) return;
+                playerGroup.all().each(p -> p.getTeam() == player.getTeam(), o -> o.sendMessage(message, player, "[#" + player.getTeam().color.toString() + "]<T>" + NetClient.colorizeName(player.id, player.name)));
+            });
 
             handler.<Player>register("d", "<text...>", "Sends a message to moderators. Use when no moderators are online and there's a griefer.", (args, player) -> {
-
                 if (!data.has("warnings_chat_channel_id")) {
                     player.sendMessage("[scarlet]This command is disabled.");
                 } else {
+                    String message = args[0];
+                    if (!checkChatRatelimit(message, player)) return;
                     TextChannel tc = getTextChannel(data.getString("warnings_chat_channel_id"));
                     if (tc == null) {
                         player.sendMessage("[scarlet]This command is disabled.");
                         return;
                     }
-                    tc.sendMessage(escapeCharacters(player.name) + " *@mindustry* : `" + args[0] + "`");
+                    tc.sendMessage(escapeCharacters(player.name) + " *@mindustry* : `" + message + "`");
                     player.sendMessage("[scarlet]Successfully sent message to moderators.");
                 }
-
             });
 
             handler.<Player>register("players", "Display all players and their ids", (args, player) -> {

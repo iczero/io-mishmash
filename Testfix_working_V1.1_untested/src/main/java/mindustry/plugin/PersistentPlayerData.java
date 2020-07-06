@@ -1,11 +1,8 @@
 package mindustry.plugin;
 import arc.struct.Array;
-import mindustry.entities.bullet.BulletType;
 import mindustry.entities.type.BaseUnit;
-import mindustry.entities.type.Player;
 
 import java.io.Serializable;
-import java.lang.ref.WeakReference;
 
 public class PersistentPlayerData implements Serializable {
     public String origName;
@@ -14,6 +11,10 @@ public class PersistentPlayerData implements Serializable {
     public boolean spawnedLichPet;
     public boolean spawnedPowerGen;
 
-    public PersistentPlayerData() {}
+    // 50 configures per 1000 ms
+    public Ratelimit configureRatelimit = new Ratelimit(50, 1000);
+    // 10 rotates per 1000 ms
+    public Ratelimit rotateRatelimit = new Ratelimit(10, 1000);
 
+    public PersistentPlayerData() {}
 }

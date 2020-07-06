@@ -18,6 +18,7 @@ import static mindustry.Vars.state;
 import static mindustry.Vars.world;
 import static mindustry.plugin.Utils.*;
 
+// TODO: this isn't used?
 public class MapRules {
 
     public static void onMapLoad(){
@@ -26,12 +27,6 @@ public class MapRules {
         Vars.netServer.admins.addActionFilter(action -> {
             Player player = action.player;
             if (player == null) return true;
-
-            String uuid = player.uuid;
-            if (uuid == null) return true;
-
-            PlayerData pd = getData(uuid);
-            if (pd == null) return true;
 
             // disable checks for admins
             if (player.isAdmin) return true;
