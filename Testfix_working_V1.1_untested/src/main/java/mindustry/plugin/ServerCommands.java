@@ -441,6 +441,7 @@ public class ServerCommands {
                         pd.banned = false;
                         pd.bannedUntil = 0;
                         Administration.PlayerInfo info = netServer.admins.getInfo(target);
+                        netServer.admins.unbanPlayerID(target);
                         eb.setTitle("Unbanned `" + escapeCharacters(info.lastName) + "`.");
                         ctx.channel.sendMessage(eb);
                         setData(target, pd);
