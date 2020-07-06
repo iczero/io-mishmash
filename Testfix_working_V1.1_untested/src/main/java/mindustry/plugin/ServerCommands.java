@@ -308,9 +308,11 @@ public class ServerCommands {
                                 pd.banReason = reason + "\n[accent]Ban ID:[] " + banId;
                                 setData(uuid, pd);
                             }
+                            netServer.admins.banPlayerIP(player.con.address);
                             eb.setTitle("Banned `" + escapeCharacters(player.name) + "` permanently.");
                             eb.addField("UUID", uuid);
                             eb.addField("Ban ID", banId);
+                            eb.addField("IP", player.con.address);
                             eb.addInlineField("Reason", reason);
                             ctx.channel.sendMessage(eb);
 
@@ -447,6 +449,26 @@ public class ServerCommands {
                         eb.setColor(Pals.error);
                         ctx.channel.sendMessage(eb);
                     }
+                }
+            });
+
+            handler.registerCommand(new RoleRestrictedCommand("unbanip"){
+                {
+                    help = "<uuid> Unban the player by the provided IP.";
+                    role = banRole;
+                }
+
+                public void run(Context ctx) {
+                    EmbedBuilder eb = new EmbedBuilder();
+                    String target = ctx.args[1];
+                    if (!netServer.admins.isIPBanned(target)) {
+                        eb.setTitle("IP `" + escapeCharacters(target) + "` was not banned");
+                        eb.setColor(Pals.error);
+                    } else {
+                        netServer.admins.unbanPlayerIP(target);
+                        eb.setTitle("Unbanned IP `" + escapeCharacters(target) + "`");
+                    }
+                    ctx.channel.sendMessage(eb);
                 }
             });
 
